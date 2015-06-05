@@ -75,8 +75,12 @@
            enddo
           enddo
          enddo
-         
-
+         !read in lon grids
+         do i=1,landpoints          
+           latgrid(lonindex(i),latindex(i))=latitude(latindex(i)) 
+           longrid(lonindex(i),latindex(i))=longitude(lonindex(i)) 
+         enddo
+         ! read data grid
          do i=1,landpoints
           do t=1,steps
            landsum = landsum+data_in(i,t)
@@ -87,38 +91,49 @@
          print*,"sum of grid:",sum(grid),"sum of input",sum(data_in)
          print*,"Closing file..."
          call check(nf90_close(ncid))
-!     !!!!!!!! WRITE TO IOAPI FILE 
-!       ! SETUP HEADER INFO
-!      LOGDEV = INIT3()
-!
-!
-!      ! setup the variables used to write the I/O api header
-!      nvars3d=3                 ! number of variables
-!      ftype3d=GRDDED3           ! file is in grided, Global dobson file header
-!      gdtyp3d= 2!Lambert                !
-!!      p_alp3d=90.              !unused in lat-lon
-!!      p_bet3d=90.              !unused in lat-lon
+     !!!!!!!! WRITE TO IOAPI FILE 
+       ! SETUP HEADER INFO
+      LOGDEV = INIT3()
+
+
+      ! setup the variables used to write the I/O api header
+      nvars3d=3                 ! number of variables
+      ftype3d=GRDDED3           ! file is in grided, Global dobson file header
+      gdtyp3d= 2!Lambert                !
+!      p_alp3d=90.              !unused in lat-lon
+!      p_bet3d=90.              !unused in lat-lon
 !      xcent3d=36.94589                !unused in lat-lon
 !      ycent3d=-119.6242                !unused in lat-lon
-!      xorig3d=-122.0788
-!      yorig3d=30.65546
-!      xcell3d=4000.
-!      ycell3d=4000.
-!      ncols3d=ncols
-!      nrows3d=nrows
-!      nlays3d=1                ! documentation is vague on this maybe vertical levs
-!      vgtyp3d=VGSGPN3           !  non-hydrostatic sigma-p vertical coordinate
-!      vgtop3d=1.                ! domain top in meter
-!      nthik3d=1
-!      vglvs3d(1)=1.             ! levels in meter
-!      units3d(1)='ppbv'
-!      vname3d(1) = 'CO2_TRACER1'
-!      vdesc3d(1) = 'Upper boundary'
-!      vtype3d(1)=m3real
-!
-!      sdate3d = 2015124
-!      stime3d = 000000
-!      tstep3d = 10000
+      xorig3d=-190
+      yorig3d=-90
+      xcell3d=1.25
+      ycell3d=1
+      ncols3d=nlons
+      nrows3d=nlats
+      nlays3d=1                ! documentation is vague on this maybe vertical levs
+      vgtyp3d=VGSGPN3           !  non-hydrostatic sigma-p vertical coordinate
+      vgtop3d=1.                ! domain top in meter
+      nthik3d=1
+      vglvs3d(1)=1.             ! levels in meter
+      units3d(1)='umol/m2/sec'
+      vname3d(1) = VAR_NAME
+      vdesc3d(1) = 'OCS surface flux'
+      vtype3d(1)=m3real
+
+      vglvs3d(2)=1.             ! levels in meter
+      units3d(2)='lon'
+      vname3d(2) = VAR_NAME4 
+      vdesc3d(2) = 'Grid longitudes'
+      vtype3d(2)=m3real
+      
+      vglvs3d(3)=1.             ! levels in meter
+      units3d(3)='lat'
+      vname3d(3) = VAR_NAME5
+      vdesc3d(3) = 'Grid latitudes'
+      vtype3d(3)=m3real
+      sdate3d = 2010121
+      stime3d = 000000
+      tstep3d = 10000
  
        
 
