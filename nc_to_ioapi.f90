@@ -97,9 +97,9 @@
 
 
       ! setup the variables used to write the I/O api header
-      nvars3d=3                 ! number of variables
+      nvars3d=1                 ! number of variables
       ftype3d=GRDDED3           ! file is in grided, Global dobson file header
-      gdtyp3d= 2!Lambert                !
+      gdtyp3d= 1!Lambert                !
 !      p_alp3d=90.              !unused in lat-lon
 !      p_bet3d=90.              !unused in lat-lon
 !      xcent3d=36.94589                !unused in lat-lon
@@ -120,22 +120,62 @@
       vdesc3d(1) = 'OCS surface flux'
       vtype3d(1)=m3real
 
-      vglvs3d(2)=1.             ! levels in meter
-      units3d(2)='lon'
-      vname3d(2) = VAR_NAME4 
-      vdesc3d(2) = 'Grid longitudes'
-      vtype3d(2)=m3real
-      
-      vglvs3d(3)=1.             ! levels in meter
-      units3d(3)='lat'
-      vname3d(3) = VAR_NAME5
-      vdesc3d(3) = 'Grid latitudes'
-      vtype3d(3)=m3real
+!      vglvs3d(2)=1.             ! levels in meter
+!      units3d(2)='lon'
+!      vname3d(2) = VAR_NAME4 
+!      vdesc3d(2) = 'Grid longitudes'
+!      vtype3d(2)=m3real
+!      
+!      vglvs3d(3)=1.             ! levels in meter
+!      units3d(3)='lat'
+!      vname3d(3) = VAR_NAME5
+!      vdesc3d(3) = 'Grid latitudes'
+!      vtype3d(3)=m3real
       sdate3d = 2010121
       stime3d = 000000
       tstep3d = 10000
  
-       
+! FILE CREATION SECTION:
+      ! attempt to open the I/O api file. Create one if it does not exist
+      print*, 'Attempting to open file...'
+      if(.not.OPEN3('OUTPUT',FSRDWR3,'netcdf_to_ioap')) then ! output file does not exit
+         print*, 'File does not exist, attempting file creation...'
+         if(.not.OPEN3('OUTPUT',FSCREA3,'netcdf_to_ioap')) then ! FSCREA3 FSUNKN3
+            print*, 'Error opening output file'
+            stop
+         endif
+      else
+         print*,'Reading from previously created file!'
+         if (.not. DESC3('OUTPUT') ) then ! if exit, get information
+            print*, 'Error getting info from OUTPUT nc'
+            stop
+         endif
+      endif
+
+! END FILE CREATION SECTION
+!
+! DATA WRITE SECTION
+      ! Setup time and iteration information.
+      jdate =sdate3d
+      jtime = stime3d
+      print*,jdate,jtime
+      ! Attempt an I/O api data write. For whatever reason the convention is to
+      !     loop through time and write one 2d grid at a time.
+      do t=1,steps
+       if(.not.write3('OUTPUT',vname3d(1),jdate,jtime,grid(:,:,t)) then
+          print*,'writing error'
+          stop
+       endif
+       print*, jdate,jtime
+       jtime=jtime+tstep3d
+       if (jtime.eq.24000) then
+         jtime = 000000
+         jdate = jdate+1
+      enddo
+
+! Close IOAPI
+      print*, 'SHUT3()=',SHUT3()
+!!!!!!!!!!!end ioapi
 
        !!!!!!!! Checks for errors when reading netcdf
          contains
