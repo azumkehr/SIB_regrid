@@ -26,7 +26,7 @@
            landpoints = 12246 
          ! ID variables AND index variables
          integer::ncid,varid,varid2,varid3,varid4,varid5,i,j,t,nrows,&
-                  ncols,LOGDEV
+                  ncols,LOGDEV,jdate,jtime
          
          ! Input Grid
          real, dimension(landpoints,steps)::data_in
@@ -162,7 +162,7 @@
       ! Attempt an I/O api data write. For whatever reason the convention is to
       !     loop through time and write one 2d grid at a time.
       do t=1,steps
-       if(.not.write3('OUTPUT',vname3d(1),jdate,jtime,grid(:,:,t)) then
+       if(.not.write3('OUTPUT',vname3d(1),jdate,jtime,grid(:,:,t))) then
           print*,'writing error'
           stop
        endif
@@ -171,6 +171,7 @@
        if (jtime.eq.24000) then
          jtime = 000000
          jdate = jdate+1
+       endif
       enddo
 
 ! Close IOAPI

@@ -4,7 +4,7 @@ pgf90 -O2 -c -I/home/ecampbell_lab/thilton/local/include -c -o nc_to_ioapi.o nc_
 
 echo "creating executable file"
 pgf90 -o nc_to_ioapi.x nc_to_ioapi.o -L/home/ecampbell_lab/thilton/local/lib -lioapi -lnetcdf -ldatetime
-setenv OUTPUT "SiB_IOAPI_2010_5.nc"
+export OUTPUT="SiB_IOAPI_2010_5.nc"
 read -n1 -r -p "Press y to continue...    " key
 ./nc_to_ioapi.x
 
