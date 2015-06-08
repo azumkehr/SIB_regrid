@@ -24,7 +24,7 @@ setenv GRIDDESC ${cwd}/GRIDDESC_SIB.txt
 
 # MATRIX FILENAME FOR REGRIDDING MATH
 setenv MATRIX SIB_matrix
-#if(-e $MATRIX) rm -f $MATRIX
+if(-e $MATRIX) rm -f $MATRIX
 
 setenv  MATTXT SIB_mat_txt
 
@@ -49,7 +49,7 @@ endif
 # #seems to tell m2wndw to use the default value for something it
 # #prompts the user for.  Therefore the blanks are necessary for
 # #non-interactive use. ---TWH: http://www.cmascenter.org/ioapi/documentation/3.1/html/MTXCPLE.html
-setenv INFILE SIB_IOAPI_RAW_1.nc
+setenv INFILE SIB_IOAPI_2010_5.nc
 setenv OUTFILE SIB_IOAPI_RAW_CALNEX.nc
 ${cwd}/m3wndw << DONE
 
