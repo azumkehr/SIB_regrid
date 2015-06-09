@@ -8,9 +8,9 @@
          OUT_NROWS = 309,&
          OUT_NCOLS = 201 ,&
          OUT_NSTEPS = NSTEPS 
-        real, dimension(nrows,ncols,nsteps)::VAR_DATA
-        real, dimension(OUT_NROWS,OUT_NCOLS,OUT_NSTEPS)::OUT_GRID
-        real, dimension(nrows,ncols)::inlats, inlons !2d arrays of lats and lons
+        real, dimension(ncols,nrows,nsteps)::VAR_DATA
+        real, dimension(OUT_NCOLS,OUT_NROWS,OUT_NSTEPS)::OUT_GRID
+        real, dimension(ncols,nrows)::inlats, inlons !2d arrays of lats and lons
         integer::i,j  
 
         character(len=255)::FILENAME
@@ -27,12 +27,8 @@
        print*,"SUM: ", sum(VAR_DATA)
        print*,"MIN: ", minval(VAR_DATA)
        print*,"MAX: ", maxval(VAR_DATA)
-       do i = 1, nrows
-        do j = 1, ncols
-         print*, inlats(i,j), inlons(i,j)
-        enddo
-        print*,"___________________________________________"
-       enddo
+       print*,"minlat",minval(inlats),"maxlat",maxval(inlats)
+       print*,"minlon",minval(inlons),"maxlon",maxval(inlons)
       end program bilinear_interpolation
 
       
@@ -114,7 +110,7 @@
          NLANDPOINTS=12246 
        REAL, PARAMETER::&
          XCELL = 1.25,&
-         YCELL = 1.
+         YCELL = 1.0
 
        character (len=255)::FILENAME! NC PATH/NAME
        character (len=255)::VARNAME! Desired Variable Name
@@ -125,13 +121,13 @@
          lon_name="longitude"
        integer::i,j,t! indexes for iterating
        integer::ncid,varid,latid,lonid,lonid2,latid2!id for nc reading
-       real, dimension(nrows,ncols,nsteps)::VAR_DATA !data array
+       real, dimension(ncols,nrows,nsteps)::VAR_DATA !data array
        real, dimension(NLANDPOINTS,NSTEPS)::buffer
        integer, dimension(nlandpoints)::latindex
        real,dimension(181)::latitude
        integer, dimension(nlandpoints)::lonindex
        real,dimension(288)::longitude
-       real,dimension(nrows,ncols)::inlats,inlons
+       real,dimension(ncols,nrows)::inlats,inlons
        real::templat,templon
        
        print*,"Open: ",FILENAME
@@ -171,19 +167,23 @@
        templon = -180.
        do i = nrows, 1,-1
         do j = 1, ncols
-         inlats(i,j) = templat
-         inlons(i,j) = templon
+         inlats(j,i) = templat
+         inlons(j,i) = templon
          templon=templon+xcell
         enddo
         templat=templat+ycell
         templon = -180.
        enddo
-
+       
+!       do i=1,ncols
+!        print*,inlats(i,nrows)
+!        inlats(i,nrows)=-90.
+!       enddo
        !Zero the input array:
        do i=1,ncols
         do j=1,nrows
          do t = 1,nsteps
-          VAR_DATA(i,j,t) = 0.0
+          VAR_DATA(j,i,t) = 0.0
          enddo
         enddo
        enddo
