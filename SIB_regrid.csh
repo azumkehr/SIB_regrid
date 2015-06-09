@@ -21,14 +21,16 @@
 ############# STEP 2:calculating math http://www.cmascenter.org/ioapi/documentation/3.1/html/MTXCALC.html
 ######## GRID DESCRIPTIONS FILE contains description on input and output grid. See: http://www.cmascenter.org/ioapi/documentation/3.1/html/GRIDS.html
 setenv GRIDDESC ${cwd}/GRIDDESC_SIB.txt
+#setenv GRIDDESC ${cwd}/test_griddesc.txt
 
 # MATRIX FILENAME FOR REGRIDDING MATH
-setenv MATRIX SIB_matrix
+setenv MATRIX SIB_matrix.mat
 if(-e $MATRIX) rm -f $MATRIX
 
-setenv  MATTXT SIB_mat_txt
+setenv  MATTXT SIB_mat_txt.mat
 
-#if(-e $MATTXT) rm -f $MATTXT
+if(-e $MATTXT) rm -f $MATTXT
+ls
 # GRID DIVISION SIZES FOR REGRIDDING ALGORITHM
 setenv COL_REFINEMENT 1000
 setenv ROW_REFINEMENT 1000
@@ -37,8 +39,9 @@ if ( (! -e $MATRIX) ||  (! -e $MATTXT)) then
 
 ${cwd}/mtxcalc << DONE
 Y
-SIB_raw
-ARCNAGRID
+SIB_RAW
+WRF_CALNEX
+
 
 DONE
 #

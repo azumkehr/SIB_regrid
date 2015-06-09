@@ -1,11 +1,13 @@
 !  coords --2 lines:  name; type, P-alpha, P-beta, P-gamma, xcent, ycent
 'LATLON'            !  "the" lat-lon coord. system
     1,0.0D0, 0.0D0, 0.0D0, 0.0D0, 0.0D0
-'ARCTAS'        !  standard Lambert for SMRAQ, etc.
-    6,  1.0, 90.0, -40, 110, 82.9999618530273
+'LCC'        !  standard Lambert for SMRAQ, etc.
+    2,  33.0, 45.0, 30.65546, -119.624, 36.94589
 ' '                                                               ! end coords
-!XORIG, YORIG, XCELL, YCELL, NCOLS, NROWS, and NTHIK!
-'SIB_raw'
-'LATLON' -180,-90,.l,1.25,288,181,1
+'SIB_RAW'
+'LATLON' -180, -90, 1, 1.25, 288, 181, 1
+'WRF_CALNEX'
+'LCC' -7080392.000, -6795179.000, 4000.000, 4000.000, 288, 181, 1
 ' '                                                !  end grids.
+
 
