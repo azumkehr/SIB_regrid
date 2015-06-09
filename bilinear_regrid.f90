@@ -9,8 +9,9 @@
          OUT_NCOLS = 201 ,&
          OUT_NSTEPS = NSTEPS 
         real, dimension(ncols,nrows,nsteps)::VAR_DATA
-        real, dimension(OUT_NCOLS,OUT_NROWS,OUT_NSTEPS)::OUT_GRID
+        real, dimension(OUT_NCOLS,OUT_NROWS,OUT_NSTEPS)::OUTGRID
         real, dimension(ncols,nrows)::inlats, inlons !2d arrays of lats and lons
+        real, dimension(out_ncols,out_nrows)::latgrid, longrid !2d arrays of lats and lons
         integer::i,j  
 
         character(len=255)::FILENAME
@@ -29,6 +30,11 @@
        print*,"MAX: ", maxval(VAR_DATA)
        print*,"minlat",minval(inlats),"maxlat",maxval(inlats)
        print*,"minlon",minval(inlons),"maxlon",maxval(inlons)
+
+
+       call make_out_grids(outgrid,latgrid,longrid,NSTEPS)
+
+
       end program bilinear_interpolation
 
       
@@ -211,3 +217,40 @@
         stop "Stopped"
        end if
       end subroutine check
+      
+ 
+      ! Creates an output grid of zeros, makes lat and lon grids from nc.
+      subroutine make_out_grids(outgrid,latgrid,longrid,NSTEPS)
+       use netcdf
+       implicit none
+       INTEGER, PARAMETER::&
+        NROWS = 309,&
+        NCOLS = 201
+       integer::nsteps,ncid,latid,lonid,i,j,t
+
+       real, dimension(ncols,nrows,nsteps)::outgrid
+       real, dimension(ncols,nrows)::latgrid,longrid
+       do i=1,ncols
+        do j= 1,nrows
+         do t = 1,NSTEPS
+          outgrid(i,j,t) = 0
+         enddo
+        enddo
+       enddo
+
+       call check(nf90_open("/home/ecampbell_lab/ftpanon.al.noaa.gov/&
+            wrfout_d03_2010-05-25_00_R23_fpcut.nc",NF90_NOWRITE,ncid))
+       print*,"Load variable: ","XLON"
+       call check(nf90_inq_varid(ncid,"XLONG",lonid))
+       call check(nf90_inq_varid(ncid,"XLAT",latid))
+       call check(nf90_get_var(ncid,lonid,latgrid))
+       call check(nf90_get_var(ncid,latid,longrid))
+ 
+
+       call check(nf90_close(ncid))
+       print*, latgrid
+       print*, longrid
+      end subroutine make_out_grids
+
+       
+
