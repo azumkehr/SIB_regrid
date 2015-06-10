@@ -13,7 +13,7 @@
         real, dimension(ncols,nrows)::inlats, inlons !2d arrays of lats and lons
         real, dimension(out_ncols,out_nrows)::latgrid, longrid !2d arrays of lats and lons
         integer::i,j  
-
+        real::d! calculated distance between 2 coordinates.
         character(len=255)::FILENAME
         character(len=255)::VARNAME
 
@@ -33,7 +33,8 @@
 
 
        call make_out_grids(outgrid,latgrid,longrid,NSTEPS)
-
+       call haversine(0.,0.,1.,1.,d)
+       print*,"haversine distance = ",d
 
       end program bilinear_interpolation
 
@@ -237,7 +238,7 @@
          enddo
         enddo
        enddo
-
+       ! read lat lon information from the original nc file.
        call check(nf90_open("/home/ecampbell_lab/ftpanon.al.noaa.gov/&
             wrfout_d03_2010-05-25_00_R23_fpcut.nc",NF90_NOWRITE,ncid))
        print*,"Load variable: ","XLON"
@@ -252,5 +253,40 @@
        print*, longrid
       end subroutine make_out_grids
 
+      !Calulate distance 
+      subroutine haversine(lat1,lon1,lat2,lon2,d)
+       implicit none
+       !INPUT: 
+       !  lat1, lon1 = coordinates of first point.
+       !  lat2, lon2 = coordinates of second point.
+       !  distance = varable for returning calculated distance.
+       !OUTPUT:
+       !  Distance in km
+       real::lat1,lon1,lat2,lon2
+       real::d
+       real::dLat,dLon,c,a! intermediate values
+       real,parameter::R = 6371.0!readius of the erath km
+       ! Convert to radians
+       print*,"lats before",lat1,lat2
+       print*,"lons before",lon1,lon2
+       lat1 = lat1 * 0.0174532925
+       lat2 = lat2 * 0.0174532925
+       lon1 = lon1 * 0.0174532925
+       lon2 = lon2 * 0.0174532925
+       print*,"lats after",lat1,lat2
+       print*,"lons after",lon1,lon2       
+
        
+       dLat = (lat2-lat1)
+       dLon = (lon2-lon1)
+       a=(sin(dLat/2.)**2. + cos(lat1)*cos(lat2)*(sin(dLon/2.))**2.)
+       c = 2.*atan2(sqrt(a),sqrt(1.-a))
+       d = R*c
+       print*,"dlat", dLat
+       print*,"dLon",dLon
+       print*,"a",a
+       print*,"c",c
+       print*,"d",d
+       return
+      end subroutine haversine
 
