@@ -36,8 +36,12 @@
         call haversine(0.,0.,1.,1.,d)
         print*,"haversine distance = ",d
       
-        call find_nearest4(43.7348,-120.9,inlats,inlons,181,288,i1,i2,i3,i4,j1,j2,&
-             j3,j4)
+        call find_nearest4(43.22,-120.2,inlats,inlons,181,288,&
+                           i1,i2,i3,i4,j1,j2,j3,j4)
+        print*,'point 1',inlats(i1,j1),inlons(i1,j1)
+        print*,'point 2',inlats(i2,j2),inlons(i2,j2)
+        print*,'point 3',inlats(i3,j3),inlons(i3,j3)
+        print*,'point 4',inlats(i4,j4),inlons(i4,j4)
 
 
 
@@ -312,9 +316,48 @@
           endif
         enddo
        enddo
-       print*, 'lat,lon',lat,lon
-       print*, 'tempi ',tempi,'tempj ',tempj
-       print*, 'closest lat and lon',inlats(tempi,tempj),inlons(tempi,tempj)
-
-
+       print*,"CLOSEST",inlats(tempi,tempj),inlons(tempi,tempj) 
+       !note that the lats from inlat are flipped vertically so j values are intuitively backwards.
+       if ((lat<inlats(tempi,tempj)).and.(lon<inlons(tempi,tempj))) then
+          print*,"case 1"
+          i1 = tempi - 1
+          i2 = tempi
+          i3 = tempi - 1
+          i4 = tempi
+          j1 = tempj
+          j2 = tempj
+          j3 = tempj + 1
+          j4 = tempj + 1
+       else if ((lat>inlats(tempi,tempj)).and.(lon<inlons(tempi,tempj))) then
+          print*,"cawe2"
+          i1 = tempi - 1 
+          i2 = tempi
+          i3 = tempi - 1
+          i4 = tempi
+          j1 = tempj - 1
+          j2 = tempj - 1 
+          j3 = tempj
+          j4 = tempj
+       else if ((lat<inlats(tempi,tempj)).and.(lon>inlons(tempi,tempj))) then
+          print*,"case3"
+          i1 = tempi  
+          i2 = tempi + 1
+          i3 = tempi 
+          i4 = tempi + 1
+          j1 = tempj 
+          j2 = tempj  
+          j3 = tempj + 1
+          j4 = tempj + 1
+       else if((lat>inlats(tempi,tempj)).and.(lon>inlons(tempi,tempj))) then
+          print*,"case4"
+          i1 = tempi  
+          i2 = tempi + 1
+          i3 = tempi 
+          i4 = tempi + 1
+          j1 = tempj - 1
+          j2 = tempj - 1 
+          j3 = tempj 
+          j4 = tempj 
+       endif
+      return
       end subroutine find_nearest4
