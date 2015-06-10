@@ -12,7 +12,7 @@
         real, dimension(OUT_NCOLS,OUT_NROWS,OUT_NSTEPS)::OUTGRID
         real, dimension(ncols,nrows)::inlats, inlons !2d arrays of lats and lons
         real, dimension(out_ncols,out_nrows)::latgrid, longrid !2d arrays of lats and lons
-        integer::i,j  
+        integer::i,j,i1,i2,i3,i4,j1,j2,j3,j4  
         real::d! calculated distance between 2 coordinates.
         character(len=255)::FILENAME
         character(len=255)::VARNAME
@@ -23,18 +23,24 @@
         VARNAME="OCS_flux"
         !call bilinear_interp(2.,3.,2.,3.,2.,3.,2.,3.,5.,6.,8.,9.,2.5,&
         !     2.5,testval)
-       call get_sib_variable(FILENAME,VARNAME,VAR_DATA,inlats,inlons)  
-       print*,"SHAPE: ",shape(VAR_DATA)
-       print*,"SUM: ", sum(VAR_DATA)
-       print*,"MIN: ", minval(VAR_DATA)
-       print*,"MAX: ", maxval(VAR_DATA)
-       print*,"minlat",minval(inlats),"maxlat",maxval(inlats)
-       print*,"minlon",minval(inlons),"maxlon",maxval(inlons)
+        call get_sib_variable(FILENAME,VARNAME,VAR_DATA,inlats,inlons)  
+        print*,"SHAPE: ",shape(VAR_DATA)
+        print*,"SUM: ", sum(VAR_DATA)
+        print*,"MIN: ", minval(VAR_DATA)
+        print*,"MAX: ", maxval(VAR_DATA)
+        print*,"minlat",minval(inlats),"maxlat",maxval(inlats)
+        print*,"minlon",minval(inlons),"maxlon",maxval(inlons)
 
 
-       call make_out_grids(outgrid,latgrid,longrid,NSTEPS)
-       call haversine(0.,0.,1.,1.,d)
-       print*,"haversine distance = ",d
+        call make_out_grids(outgrid,latgrid,longrid,NSTEPS)
+        call haversine(0.,0.,1.,1.,d)
+        print*,"haversine distance = ",d
+      
+        call find_nearest4(43.7348,-120.9,inlats,inlons,181,288,i1,i2,i3,i4,j1,j2,&
+             j3,j4)
+
+
+
 
       end program bilinear_interpolation
 
@@ -249,8 +255,6 @@
  
 
        call check(nf90_close(ncid))
-       print*, latgrid
-       print*, longrid
       end subroutine make_out_grids
 
       !Calulate distance 
@@ -262,31 +266,55 @@
        !  distance = varable for returning calculated distance.
        !OUTPUT:
        !  Distance in km
-       real::lat1,lon1,lat2,lon2
+       real,intent(IN)::lat1,lon1,lat2,lon2
+       real,radlat1,radlon1,radlat2,radlon2
        real::d
        real::dLat,dLon,c,a! intermediate values
        real,parameter::R = 6371.0!readius of the erath km
        ! Convert to radians
-       print*,"lats before",lat1,lat2
-       print*,"lons before",lon1,lon2
-       lat1 = lat1 * 0.0174532925
-       lat2 = lat2 * 0.0174532925
-       lon1 = lon1 * 0.0174532925
-       lon2 = lon2 * 0.0174532925
-       print*,"lats after",lat1,lat2
-       print*,"lons after",lon1,lon2       
+       radlat1 = lat1 * 0.0174532925
+       radlat2 = lat2 * 0.0174532925
+       radlon1 = lon1 * 0.0174532925
+       radlon2 = lon2 * 0.0174532925
 
        
-       dLat = (lat2-lat1)
-       dLon = (lon2-lon1)
-       a=(sin(dLat/2.)**2. + cos(lat1)*cos(lat2)*(sin(dLon/2.))**2.)
+       dLat = (radlat2-radlat1)
+       dLon = (radlon2-radlon1)
+       a=(sin(dLat/2.)**2. + cos(radlat1)*cos(radlat2)*(sin(dLon/2.))**2.)
        c = 2.*atan2(sqrt(a),sqrt(1.-a))
        d = R*c
-       print*,"dlat", dLat
-       print*,"dLon",dLon
-       print*,"a",a
-       print*,"c",c
-       print*,"d",d
+!       print*,"dlat", dLat
+!       print*,"dLon",dLon
+!       print*,"a",a
+!       print*,"c",c
+!       print*,"d",d
        return
       end subroutine haversine
+      
+      ! finds the indecies of the 4 nesrest points to lat,lon
+      subroutine find_nearest4(lat,lon,inlats,inlons,nrows,ncols,&
+                 i1,i2,i3,i4,j1,j2,j3,j4)
+       implicit none
+       real::lat,lon !input lat and lon
+       integer::tempi,tempj,i1,i2,i3,i4,j1,j2,j3,j4!output index. i for hoizontal j for vert.
+       real::ld,d
+       real,dimension(ncols,nrows)::inlats,inlons!lat and lon grids of input files.
+       integer::i,j,nrows, ncols
+       print*, 'lat,lon',lat,lon
+       ld = 9999999.0
+       do i = 1, ncols
+        do j = 1, nrows
+          call haversine(lat,lon,inlats(i,j),inlons(i,j),d)
+          if (d.lt.ld) then
+           ld = d
+           tempi = i
+           tempj = j
+          endif
+        enddo
+       enddo
+       print*, 'lat,lon',lat,lon
+       print*, 'tempi ',tempi,'tempj ',tempj
+       print*, 'closest lat and lon',inlats(tempi,tempj),inlons(tempi,tempj)
 
+
+      end subroutine find_nearest4
