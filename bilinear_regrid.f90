@@ -8,12 +8,14 @@
          OUT_NROWS = 309,&
          OUT_NCOLS = 201 ,&
          OUT_NSTEPS = NSTEPS 
-        real, dimension(ncols,nrows,nsteps)::VAR_DATA
-        real, dimension(OUT_NCOLS,OUT_NROWS,OUT_NSTEPS)::OUTGRID
+!        real, dimension(ncols,nrows,nsteps)::in_cos_flux
+        real, dimension(ncols,nrows,nsteps)::in_cos_flux
+        real, dimension(OUT_NCOLS,OUT_NROWS,1)::OCS_FLUX
         real, dimension(ncols,nrows)::inlats, inlons !2d arrays of lats and lons
         real, dimension(out_ncols,out_nrows)::latgrid, longrid !2d arrays of lats and lons
-        integer::i,j,i1,i2,i3,i4,j1,j2,j3,j4  
-        real::d! calculated distance between 2 coordinates.
+        integer::i,j,t,i1,i2,i3,i4,j1,j2,j3,j4
+        real::x1,x2,x3,x4,y1,y2,y3,y4,z1,z2,z3,z4
+        real::d,lat,lon,z! calculated distance between 2 coordinates.
         character(len=255)::FILENAME
         character(len=255)::VARNAME
 
@@ -21,30 +23,56 @@
 
         FILENAME="/home/ecampbell_lab/SIB/flux_hourly_201005p001.nc"
         VARNAME="OCS_flux"
-        !call bilinear_interp(2.,3.,2.,3.,2.,3.,2.,3.,5.,6.,8.,9.,2.5,&
-        !     2.5,testval)
-        call get_sib_variable(FILENAME,VARNAME,VAR_DATA,inlats,inlons)  
-        print*,"SHAPE: ",shape(VAR_DATA)
-        print*,"SUM: ", sum(VAR_DATA)
-        print*,"MIN: ", minval(VAR_DATA)
-        print*,"MAX: ", maxval(VAR_DATA)
-        print*,"minlat",minval(inlats),"maxlat",maxval(inlats)
-        print*,"minlon",minval(inlons),"maxlon",maxval(inlons)
-
-
-        call make_out_grids(outgrid,latgrid,longrid,NSTEPS)
-        call haversine(0.,0.,1.,1.,d)
-        print*,"haversine distance = ",d
-      
-        call find_nearest4(43.22,-120.2,inlats,inlons,181,288,&
-                           i1,i2,i3,i4,j1,j2,j3,j4)
-        print*,'point 1',inlats(i1,j1),inlons(i1,j1)
-        print*,'point 2',inlats(i2,j2),inlons(i2,j2)
-        print*,'point 3',inlats(i3,j3),inlons(i3,j3)
-        print*,'point 4',inlats(i4,j4),inlons(i4,j4)
-
-
-
+!        call bilinear_interp(2.,3.,2.,3.,2.,3.,2.,3.,5.,6.,8.,9.,2.5,&
+!             2.5,z)
+!        print*,z
+!        PRINT*,"STEP 1"
+        call get_sib_variable(FILENAME,VARNAME,in_cos_flux,inlats,inlons)  
+!        call make_out_grids(OCS_FLUX,latgrid,longrid,NSTEPS)
+!        PRINT*,"STEP 2"
+        call make_out_grids(OCS_FLUX,latgrid,longrid,1)
+        ! Loop through output grid and calculate bilinear values
+        ! loop through time also because input data has different time values.
+!        PRINT*,"STEP 3"
+        do i = 1, OUT_NCOLS
+         do j = 1, OUT_NROWS
+!          do t = 1, NSTEPS
+           t = 1
+           lat = latgrid(i,j)
+           lon = longrid(i,j)
+!           PRINT*, "STEP 4"
+           call find_nearest4(lat,lon,inlats,inlons,nrows,ncols,&
+                 i1,i2,i3,i4,j1,j2,j3,j4)
+           ! Get longitudes for interpolation      
+           x1 = inlons(i1,j1)
+           x2 = inlons(i2,j2)
+           x3 = inlons(i3,j3)
+           x4 = inlons(i4,j4)
+           ! Get latitudes for interpolation
+           y1 = inlats(i1,j1)
+           y2 = inlats(i2,j2)
+           y3 = inlats(i3,j3)
+           y4 = inlats(i4,j4)
+           ! GEt data for interpolation
+           z1 = in_cos_flux(i1,j1,t)
+           z2 = in_cos_flux(i2,j2,t)
+           z3 = in_cos_flux(i3,j3,t)
+           z4 = in_cos_flux(i4,j4,t)
+!           if (z1.ne.0.0) then
+!            print*,"testing interp input", x1,x2,x3,x4,y1,y2,y3,y4,z1,z2,z3,z4
+!           endif
+           ! Perform interpolation to calculate value of OCS_FLUX as 'z'
+!           PRINT*,"STEP 5"
+           call bilinear_interp(x1,x2,x3,x4,y1,y2,y3,y4,z1,z2,z3,z4,&
+             lon,lat,z)
+           if(z.ne.0.0)then
+            print*,"non-zero-z",z
+           endif
+           OCS_FLUX(i,j,t)=z
+!          enddo
+         enddo
+        enddo
+!        print*,"first layer",OCS_FLUX
 
       end program bilinear_interpolation
 
@@ -59,9 +87,12 @@
          y0,&!value at position x0
          y1,&!value at position x1
          y!desired value
-       print*,x0,x1,x,y0,y1
-       y = y0+(y1-y0)*((x-x0)/(x1-x0))
-       print*,'interpanswer:',y
+       if (x0.eq.x1) then
+        y = (y0+y1)/2.
+       else
+        y = y0+(y1-y0)*((x-x0)/(x1-x0))
+       endif
+       !print*,'interpanswer:',y
        return      
 
       end subroutine linear_interp
@@ -91,20 +122,15 @@
          yave2,&! average of y values 1,3
          ztemp,&! final value
          z
+!       print*, "enter bilinear_interp()"
        z = 0.0
        yave1 = (y0+y2)/2.0
        yave2 = (y1+y3)/2.0
-       print*, 'y',y
-       print*,'yave1',yave1
-       print*,'yave2',yave2
        call linear_interp(x0,x1,z0,z1,x,temp_z1)
-       print*,'temp_z1',temp_z1
        call linear_interp(x2,x3,z2,z3,x,temp_z2)
-       print*,'temp_z2',temp_z2
-       print*,'y',y
        call linear_interp(yave1,yave2,temp_z1,temp_z2,y,ztemp)
-       print*, ztemp
        z = ztemp
+!       print*,"exit bilinear_interp()"
        return
 
       end subroutine bilinear_interp
@@ -146,7 +172,7 @@
        real,dimension(288)::longitude
        real,dimension(ncols,nrows)::inlats,inlons
        real::templat,templon
-       
+!       print*,"enter get_sib_variables()"
        print*,"Open: ",FILENAME
        call check(nf90_open(FILENAME,NF90_NOWRITE,ncid))
 
@@ -175,7 +201,6 @@
        call check(nf90_inq_varid(ncid,VARNAME,varid))
        print*,"Load variable: ",VARNAME
        call check(nf90_get_var(ncid,varid,buffer))
-
        call check(nf90_close(ncid))
        print*,"File closed."
  
@@ -213,8 +238,6 @@
         enddo
        enddo
        
-
-       
        
        return
       end subroutine get_sib_variable   
@@ -241,6 +264,7 @@
 
        real, dimension(ncols,nrows,nsteps)::outgrid
        real, dimension(ncols,nrows)::latgrid,longrid
+       print*, "enter make_out_grids()"
        do i=1,ncols
         do j= 1,nrows
          do t = 1,NSTEPS
@@ -304,7 +328,7 @@
        real::ld,d
        real,dimension(ncols,nrows)::inlats,inlons!lat and lon grids of input files.
        integer::i,j,nrows, ncols
-       print*, 'lat,lon',lat,lon
+!       print*,"enter find_nearest4()"
        ld = 9999999.0
        do i = 1, ncols
         do j = 1, nrows
@@ -316,10 +340,8 @@
           endif
         enddo
        enddo
-       print*,"CLOSEST",inlats(tempi,tempj),inlons(tempi,tempj) 
        !note that the lats from inlat are flipped vertically so j values are intuitively backwards.
        if ((lat<inlats(tempi,tempj)).and.(lon<inlons(tempi,tempj))) then
-          print*,"case 1"
           i1 = tempi - 1
           i2 = tempi
           i3 = tempi - 1
@@ -329,7 +351,6 @@
           j3 = tempj + 1
           j4 = tempj + 1
        else if ((lat>inlats(tempi,tempj)).and.(lon<inlons(tempi,tempj))) then
-          print*,"cawe2"
           i1 = tempi - 1 
           i2 = tempi
           i3 = tempi - 1
@@ -339,7 +360,6 @@
           j3 = tempj
           j4 = tempj
        else if ((lat<inlats(tempi,tempj)).and.(lon>inlons(tempi,tempj))) then
-          print*,"case3"
           i1 = tempi  
           i2 = tempi + 1
           i3 = tempi 
@@ -349,7 +369,6 @@
           j3 = tempj + 1
           j4 = tempj + 1
        else if((lat>inlats(tempi,tempj)).and.(lon>inlons(tempi,tempj))) then
-          print*,"case4"
           i1 = tempi  
           i2 = tempi + 1
           i3 = tempi 
