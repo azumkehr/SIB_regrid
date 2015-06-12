@@ -29,7 +29,7 @@
 
 
         FILENAME="/home/ecampbell_lab/SIB/flux_hourly_201005p001.nc"
-        VARNAME="OCS_gpp"
+        VARNAME="OCS_flux"
 !        call bilinear_interp(2.,3.,2.,3.,2.,3.,2.,3.,5.,6.,8.,9.,2.5,&
 !             2.5,z)
 !        print*,z
@@ -38,14 +38,6 @@
         print*,"in_cos_flux",sum(in_cos_flux),shape(in_cos_flux)
         print*,"lats",minval(inlats),maxval(inlats)
         print*,"lons",minval(inlons),maxval(inlons)
-        do i=1,ncols
-         do j = 1,nrows
-          if((inlats(i,j).ne.-9.9999998*10.**10.).and.(inlons(i,j).ne.-9.9999998*10.**10.))then
-           print*,inlats(i,j),inlons(i,j),i,j
-           read(*,*)
-          endif
-         enddo
-        enddo
 !        call make_out_grids(OCS_FLUX,latgrid,longrid,NSTEPS)
         PRINT*,"STEP 2"
         call make_out_grids(OCS_FLUX,latgrid,longrid,nsteps)
@@ -243,11 +235,12 @@
 !        print*,"answer: ",z
 !       endif
        z = 0.0
-       yave1 = (y0+y2)/2.0
-       yave2 = (y1+y3)/2.0
+       !print*,"y's",y0,y1,y2,y3
+       !yave1 = (y0+y2)/2.0
+       !yave2 = (y1+y3)/2.0
        call linear_interp(x0,x1,z0,z1,x,temp_z1)
        call linear_interp(x2,x3,z2,z3,x,temp_z2)
-       call linear_interp(yave1,yave2,temp_z1,temp_z2,y,ztemp)
+       call linear_interp(y0,y2,temp_z1,temp_z2,y,ztemp)
        
        z = ztemp
 !       print*,"exit bilinear_interp()"
@@ -324,23 +317,19 @@
        call check(nf90_close(ncid))
        print*,"File closed."
        ! load longitude and latitude arrays
-!       templat = -90.
-!       templon = -180.
-!       print*, "cells xy",xcell,ycell
-!       do i = 1, ncols
-!        do j = 1 ,nrows
-!         inlats(i,j) = templat
-!         inlons(i,j) = templon
-!         templat=templat+ycell
-!        enddo
-!        templon=templon+xcell
-!        templat = -90.
-!       enddo
-       
-!       do i=1,ncols
-!        print*,inlats(i,nrows)
-!        inlats(i,nrows)=-90.
-!       enddo
+       templat = -90.
+       templon = -180.
+       print*, "cells xy",xcell,ycell
+       do i = 1, ncols
+        do j = 1 ,nrows
+         inlats(i,j) = templat
+         inlons(i,j) = templon
+         templat=templat+ycell
+        enddo
+        templon=templon+xcell
+        templat = -90.
+       enddo
+      
        !Zero the input array:
        do i=1,ncols
         do j=1,nrows
@@ -357,17 +346,13 @@
          VAR_DATA(lonindex(i),latindex(i),t) = BUFFER(i,t)
         enddo
        enddo
-       do i = 1,ncols
-        do j = 1, nrows
-         inlats(i,j) = -99999999999. 
-         inlons(i,j) = -99999999999.
-        enddo
-       enddo 
-       do i=1,181
-         inlats(lonindex(i),latindex(i)) = latitude(i)
+       print*, minval(latindex),maxval(latindex)
+       print*, minval(lonindex),maxval(lonindex)
+       do i=36,174
+         inlats(lonindex(i),latindex(i)) = latitude(latindex(i))
        enddo
        do i = 1,288
-         inlons(lonindex(i),latindex(i)) = longitude(i)
+         inlons(lonindex(i),latindex(i)) = longitude(lonindex(i))
        enddo
        print*,minval(lonindex),maxval(lonindex)
        print*,minval(latindex),maxval(latindex) 
@@ -375,6 +360,8 @@
        print*,"inlon range",minval(inlons),maxval(inlons)
        print*,"latrange",minval(latitude),maxval(latitude)
        print*,"lonrange",minval(longitude),maxval(longitude)
+       print*, longitude(2),inlons(2,2)
+       print*, latitude(2),inlats(2,2)
        return
       end subroutine get_sib_variable   
 
@@ -467,7 +454,7 @@
        integer::tempi,tempj,i1,i2,i3,i4,j1,j2,j3,j4!output index. i for hoizontal j for vert.
        real::ld,d
        real,dimension(ncols,nrows)::inlats,inlons!lat and lon grids of input files.
-       integer::i,j,nrows, ncols
+       integer::i,j,nrows, ncols,case_number
 !       print*,"enter find_nearest4()"
        ld = 9999999.0
        do i = 1, ncols
@@ -484,42 +471,47 @@
        enddo
        !note that the lats from inlat are flipped vertically so j values are intuitively backwards.
        if ((lat<inlats(tempi,tempj)).and.(lon<inlons(tempi,tempj))) then
+          case_number = 1
           i1 = tempi - 1
           i2 = tempi
           i3 = tempi - 1
           i4 = tempi
           j1 = tempj
           j2 = tempj
-          j3 = tempj + 1
-          j4 = tempj + 1
+          j3 = tempj - 1
+          j4 = tempj - 1
        else if ((lat>inlats(tempi,tempj)).and.(lon<inlons(tempi,tempj))) then
+          case_number = 2
           i1 = tempi - 1 
           i2 = tempi
           i3 = tempi - 1
           i4 = tempi
-          j1 = tempj - 1
-          j2 = tempj - 1 
+          j1 = tempj + 1
+          j2 = tempj + 1 
           j3 = tempj
           j4 = tempj
        else if ((lat<inlats(tempi,tempj)).and.(lon>inlons(tempi,tempj))) then
+          case_number = 3
           i1 = tempi  
           i2 = tempi + 1
           i3 = tempi 
           i4 = tempi + 1
           j1 = tempj 
           j2 = tempj  
-          j3 = tempj + 1
-          j4 = tempj + 1
+          j3 = tempj - 1
+          j4 = tempj - 1
        else if((lat>inlats(tempi,tempj)).and.(lon>inlons(tempi,tempj))) then
+          case_number = 4
           i1 = tempi  
           i2 = tempi + 1
           i3 = tempi 
           i4 = tempi + 1
-          j1 = tempj - 1
-          j2 = tempj - 1 
+          j1 = tempj + 1
+          j2 = tempj + 1 
           j3 = tempj 
           j4 = tempj 
        else
+          case_number = 5
           i1 = tempi - 1
           i2 = tempi
           i3 = tempi - 1
@@ -530,6 +522,6 @@
           j4 = tempj - 1
           
        endif
-                
+       !print*,"case",case_number
       return
       end subroutine find_nearest4
