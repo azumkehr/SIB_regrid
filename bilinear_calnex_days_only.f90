@@ -1,4 +1,4 @@
-      Program bilinear_interpolation
+      program bilinear_interpolation
         implicit none
         include 'netcdf.inc'
         include 'PARMS3.EXT'
@@ -8,39 +8,52 @@
         INTEGER, PARAMETER::&
          NROWS= 181,&
          NCOLS= 288,&
-         NSTEPS= 744,&
+         NSTEPS=744,&
+         NSTEPS2=720,&
          NLANDPOINTS=12246,&
          OUT_NROWS = 309,&
          OUT_NCOLS = 201 ,&
          OUT_NSTEPS = NSTEPS 
 !        real, dimension(ncols,nrows,nsteps)::in_cos_flux
-        real, dimension(ncols,nrows,nsteps)::in_cos_flux
-        real, dimension(OUT_NCOLS,OUT_NROWS,nsteps)::OCS_FLUX
+        real, dimension(ncols,nrows,nsteps)::in_cos_flux1
+        real, dimension(ncols,nrows,nsteps)::in_cos_flux2
+        real, dimension(OUT_NCOLS,OUT_NROWS,nsteps+NSTEPS2)::OCS_FLUX
         real, dimension(ncols,nrows)::inlats, inlons !2d arrays of lats and lons
         real, dimension(out_ncols,out_nrows)::latgrid, longrid !2d arrays of lats and lons
         real,dimension(out_ncols,out_nrows)::write_buffer
-        integer::i,j,t,i1,i2,i3,i4,j1,j2,j3,j4,LOGDEV,day,hour,jdate,jtime
+        integer::i,j,t,i1,i2,i3,i4,j1,j2,j3,j4,LOGDEV,&
+           dayOY,jday,hour,jdate,jtime
         real::x1,x2,x3,x4,y1,y2,y3,y4,z1,z2,z3,z4
         real::d,lat,lon,z! calculated distance between 2 coordinates.
-        character(len=255)::FILENAME
+        character(len=255)::FILENAME1
+        character(len=255)::FILENAME2
         character(len=255)::VARNAME
         character(len=255)::outname
         
 
-
-        FILENAME="/home/ecampbell_lab/SIB/flux_hourly_201005p001.nc"
+        FILENAME1 ="/home/ecampbell_lab/SIB/&
+            flux_hourly_201005p001.nc"
+        FILENAME2 = "/home/ecampbell_lab/SIB/&
+            flux_hourly_201006p001.nc"
         VARNAME="OCS_flux"
 !        call bilinear_interp(2.,3.,2.,3.,2.,3.,2.,3.,5.,6.,8.,9.,2.5,&
 !             2.5,z)
 !        print*,z
-        PRINT*,"STEP 1"
-        call get_sib_variable(FILENAME,VARNAME,in_cos_flux,inlats,inlons)  
-        print*,"in_cos_flux",sum(in_cos_flux),shape(in_cos_flux)
+        PRINT*,"STEP 1a"
+        call get_sib_variable(FILENAME1,VARNAME,in_cos_flux1,inlats,&
+             inlons,nrows,ncols,nsteps)  
+        PRINT*,"STEP 1b"
+        call get_sib_variable(FILENAME2,VARNAME,in_cos_flux2,inlats,&
+             inlons,nrows,ncols,nsteps2)  
+
+
+        print*,"sum of var1:",sum(in_cos_flux1)
+        print*,"sum of var2:",sum(in_cos_flux2)
         print*,"lats",minval(inlats),maxval(inlats)
         print*,"lons",minval(inlons),maxval(inlons)
 !        call make_out_grids(OCS_FLUX,latgrid,longrid,NSTEPS)
         PRINT*,"STEP 2"
-        call make_out_grids(OCS_FLUX,latgrid,longrid,nsteps)
+        call make_out_grids(OCS_FLUX,latgrid,longrid,nsteps+NSTEPS2,out_nrows,out_ncols)
         call find_nearest4(43.5,-120.5,inlats,inlons,nrows,ncols,i1,i2,i3,i4,j1,j2,j3,j4)
         print*,i1,j1,i3,i4,j1,j2,j3,j4
         print*,""
@@ -59,7 +72,7 @@
            lon = longrid(i,j)
           call find_nearest4(lat,lon,inlats,inlons,nrows,ncols,&
                 i1,i2,i3,i4,j1,j2,j3,j4)
-          do t = 1, NSTEPS
+          do t = 1, NSTEPS+NSTEPS2
 !           PRINT*, "STEP 4"
            ! Get longitudes for interpolation 
            x1 = inlons(i1,j1)
@@ -72,10 +85,17 @@
            y3 = inlats(i3,j3)
            y4 = inlats(i4,j4)
            ! GEt data for interpolation
-           z1 = in_cos_flux(i1,j1,t)
-           z2 = in_cos_flux(i2,j2,t)
-           z3 = in_cos_flux(i3,j3,t)
-           z4 = in_cos_flux(i4,j4,t)
+           if (t.le.744)then
+            z1 = in_cos_flux1(i1,j1,t)
+            z2 = in_cos_flux1(i2,j2,t)
+            z3 = in_cos_flux1(i3,j3,t)
+            z4 = in_cos_flux1(i4,j4,t)
+           else
+            z1 = in_cos_flux2(i1,j1,t-744)
+            z2 = in_cos_flux2(i2,j2,t-744)
+            z3 = in_cos_flux2(i3,j3,t-744)
+            z4 = in_cos_flux2(i4,j4,t-744)
+           endif
          !  if (z1.ne.0.0) then
          !   print*,"testing interp input", x1,x2,x3,x4,y1,y2,y3,y4,z1,z2,z3,z4
          !  endif
@@ -103,8 +123,8 @@
 !      p_bet3d=90.              !unused in lat-lon
       xcent3d=36.94589                !unused in lat-lon
       ycent3d=-119.6242                !unused in lat-lon
-      xorig3d=-122.0788
-      yorig3d=30.65546
+     ! xorig3d=-122.0788
+     ! yorig3d=30.65546
       xcell3d=4000.
       ycell3d=4000.
       ncols3d=out_ncols
@@ -141,14 +161,14 @@
 
 ! DATA WRITE SECTION
       ! Setup time and iteration information.
-      day = 121
+      dayOY = 121 
       hour = 0
       jdate =sdate3d
       jtime = stime3d
       print*,jdate,jtime
       ! Attempt an I/O api data write. For whatever reason the convention is to
       !     loop through time and write one 2d grid at a time.
-      do t=1,nsteps
+      do t=1,nsteps+NSTEPS2
 !       do i = 1,out_ncols
 !        do j = 1, out_nrows
 !          write_buffer(i,j) = OCS_FLUX(i,j,t)
@@ -161,12 +181,13 @@
           stop
        endif
        print*, jdate,jtime
-       call nexttime(jdate,jtime,tstep3d, day, hour)
+       print*,"sum",sum(ocs_flux(:,:,t))
+       call nexttime(jdate,jtime,tstep3d, dayOY, hour)
       enddo
 
 
       print*, 'SHUT3()=',SHUT3()
-
+      print*,nsteps+nsteps2,"records written"
       end program bilinear_interpolation
 
       subroutine nexttime(jdate,jtime,tstep3d,day,hour)
@@ -251,7 +272,7 @@
       ! Gets the data of VARNAME from a net cdf file. Requires that VAR_DATA
       ! Is of the correct dimensions. must know dimensions 
       subroutine get_sib_variable(FILENAME,VARNAME,VAR_DATA,inlats,&
-                 inlons)
+                 inlons,nrows,ncols,nsteps)
        use netcdf
        implicit NONE
        include 'netcdf.inc'
@@ -260,9 +281,6 @@
        include 'IODECL3.EXT'
 
        INTEGER, PARAMETER::&
-         NROWS= 181,&
-         NCOLS= 288,&
-         NSTEPS= 744,&
          NLANDPOINTS=12246 
        REAL, PARAMETER::&
          XCELL = 1.25,&
@@ -276,13 +294,13 @@
          lonvar="lonindex",&
          lon_name="longitude"
        integer::i,j,t! indexes for iterating
-       integer::ncid,varid,latid,lonid,lonid2,latid2!id for nc reading
+       integer::ncid,varid,latid,lonid,lonid2,latid2,nrows,ncols,nsteps!id for nc reading
        real, dimension(ncols,nrows,nsteps)::VAR_DATA !data array
        real, dimension(NLANDPOINTS,NSTEPS)::buffer
        integer, dimension(nlandpoints)::latindex
-       real,dimension(181)::latitude
+       real,dimension(nrows)::latitude
        integer, dimension(nlandpoints)::lonindex
-       real,dimension(288)::longitude
+       real,dimension(ncols)::longitude
        real,dimension(ncols,nrows)::inlats,inlons
        real::templat,templon
 !       print*,"enter get_sib_variables()"
@@ -308,7 +326,7 @@
        call check(nf90_inq_varid(ncid,lon_name,lonid2))
        print*,"Load variable: ",lon_name
        call check(nf90_get_var(ncid,lonid2,longitude))
-       
+       print*,'buffer shape',shape(buffer)         
        ! Read actual data
        print*,"Find variable: ",VARNAME
        call check(nf90_inq_varid(ncid,VARNAME,varid))
@@ -346,14 +364,13 @@
          VAR_DATA(lonindex(i),latindex(i),t) = BUFFER(i,t)
         enddo
        enddo
-       print*, minval(latindex),maxval(latindex)
-       print*, minval(lonindex),maxval(lonindex)
-       do i=36,174
-         inlats(lonindex(i),latindex(i)) = latitude(latindex(i))
-       enddo
-       do i = 1,288
-         inlons(lonindex(i),latindex(i)) = longitude(lonindex(i))
-       enddo
+!       print*,"lonindex,latindex shape",shape(lonindex),shape(latindex)
+!       do i=1,landpoints
+!         inlats(lonindex(i),latindex(i)) = latitude(latindex(i))
+!       enddo
+!       do i = 1,landpoints
+!         inlons(lonindex(i),latindex(i)) = longitude(lonindex(i))
+!       enddo
        print*,minval(lonindex),maxval(lonindex)
        print*,minval(latindex),maxval(latindex) 
        print*,"inlat range",minval(inlats),maxval(inlats)
@@ -377,13 +394,10 @@
       
  
       ! Creates an output grid of zeros, makes lat and lon grids from nc.
-      subroutine make_out_grids(outgrid,latgrid,longrid,NSTEPS)
+      subroutine make_out_grids(outgrid,latgrid,longrid,NSTEPS,nrows,ncols)
        use netcdf
        implicit none
-       INTEGER, PARAMETER::&
-        NROWS = 309,&
-        NCOLS = 201
-       integer::nsteps,ncid,latid,lonid,i,j,t
+       integer::nsteps,ncid,latid,lonid,i,j,t,nrows,ncols
 
        real, dimension(ncols,nrows,nsteps)::outgrid
        real, dimension(ncols,nrows)::latgrid,longrid
@@ -397,7 +411,7 @@
        enddo
        ! read lat lon information from the original nc file.
        call check(nf90_open("/home/ecampbell_lab/ftpanon.al.noaa.gov/&
-            wrfout_d03_2010-05-25_00_R23_fpcut.nc",NF90_NOWRITE,ncid))
+           wrfout_d03_2010-05-25_00_R23_fpcut.nc",NF90_NOWRITE,ncid))
        print*,"Load variable: ","XLON"
        call check(nf90_inq_varid(ncid,"XLONG",lonid))
        print*,"Load variable: ","XLAT"
